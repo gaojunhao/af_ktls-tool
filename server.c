@@ -575,6 +575,7 @@ static int tls_run_server(struct server_opts *opts) {
 
 	// TODO: review printing
 
+	printf("tls_run_server...\n");
 	if (gnutls_check_version("3.1.4") == NULL) {
 		print_error("GnuTLS 3.1.4 or later is required for this example\n");
 		return -1;
@@ -621,7 +622,7 @@ static int tls_run_server(struct server_opts *opts) {
 		gnutls_init(&session, GNUTLS_SERVER);
 		gnutls_priority_set_direct(session, "NORMAL:+ANON-DH:+AES-128-GCM", NULL);
 		gnutls_credentials_set(session, GNUTLS_CRD_ANON, anoncred);
-
+		printf("wait for accepting...\n");
 		sd = accept(listen_sd, (struct sockaddr *) &sa_cli, &client_len);
 
 		print_info("- connection from %s, port %d", inet_ntop(AF_INET, &sa_cli.sin_addr, topbuf,
@@ -646,6 +647,7 @@ static int tls_run_server(struct server_opts *opts) {
 
 		gettimeofday(&begin, NULL);
 		if (opts->ktls) {
+			printf("server_ktls_loop...\n");
 			server_ktls_loop(opts, session, sd, (struct sockaddr *)&sa_cli, sizeof(sa_cli), buffer);
 		} else {
 			server_gnutls_loop(opts, session, buffer, sd);

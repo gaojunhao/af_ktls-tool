@@ -21,7 +21,7 @@
 
 static int ktls_socket_set_crypto_state(gnutls_session_t session, int ksd, bool send, bool tls)
 {
-	struct tls12_crypto_info_aes_gcm_128 crypto_info;
+	struct tls12_crypto_info_aes_gcm_256 crypto_info;
 	int optname, rc = -1;
 	gnutls_datum_t mac_key;
 	gnutls_datum_t iv_read;
@@ -51,18 +51,19 @@ static int ktls_socket_set_crypto_state(gnutls_session_t session, int ksd, bool 
 
 	/* cipher type is hardcoded for now
 	 * TODO: [AY] get it from certificate */
-	crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
+	//crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
+	crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_256;
 
 	if (send) {
-		memcpy(crypto_info.iv, seq_number_write, TLS_CIPHER_AES_GCM_128_IV_SIZE);
+		memcpy(crypto_info.iv, seq_number_write, TLS_CIPHER_AES_GCM_256_IV_SIZE);
 		memcpy(crypto_info.rec_seq, seq_number_write,
-		       TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
-		if (cipher_key_write.size != TLS_CIPHER_AES_GCM_128_KEY_SIZE) {
+		       TLS_CIPHER_AES_GCM_256_REC_SEQ_SIZE);
+		if (cipher_key_write.size != TLS_CIPHER_AES_GCM_256_KEY_SIZE) {
 			print_error("mismatch in send key size");
 			goto err;
 		}
-		memcpy(crypto_info.key, cipher_key_write.data, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-		memcpy(crypto_info.salt, iv_write.data, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
+		memcpy(crypto_info.key, cipher_key_write.data, TLS_CIPHER_AES_GCM_256_KEY_SIZE);
+		memcpy(crypto_info.salt, iv_write.data, TLS_CIPHER_AES_GCM_256_SALT_SIZE);
 		optname = TLS_TX;
 	} else {
 		/*
@@ -75,20 +76,21 @@ static int ktls_socket_set_crypto_state(gnutls_session_t session, int ksd, bool 
 			seq_number_read[1] = 1;
 			seq_number_read[7] = 1;
 		}
-		memcpy(crypto_info.iv, seq_number_read, TLS_CIPHER_AES_GCM_128_IV_SIZE);
+		memcpy(crypto_info.iv, seq_number_read, TLS_CIPHER_AES_GCM_256_IV_SIZE);
 		memcpy(crypto_info.rec_seq, seq_number_read,
-		       TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
-		if (cipher_key_read.size != TLS_CIPHER_AES_GCM_128_KEY_SIZE) {
+		       TLS_CIPHER_AES_GCM_256_REC_SEQ_SIZE);
+		if (cipher_key_read.size != TLS_CIPHER_AES_GCM_256_KEY_SIZE) {
 			print_error("mismatch in recv key size");
 			goto err;
 		}
-		memcpy(crypto_info.key, cipher_key_read.data, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-		memcpy(crypto_info.salt, iv_read.data, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
+		memcpy(crypto_info.key, cipher_key_read.data, TLS_CIPHER_AES_GCM_256_KEY_SIZE);
+		memcpy(crypto_info.salt, iv_read.data, TLS_CIPHER_AES_GCM_256_SALT_SIZE);
 
 		optname = TLS_RX;
 	}
         if (send) {
           rc = setsockopt(ksd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
+	  printf("setsockopt(ksd, SOL_TCP, TCP_ULP...\n");
           if (rc < 0) {
             print_error("failed to set ULP %d\n", rc);
             goto err;
@@ -97,6 +99,7 @@ static int ktls_socket_set_crypto_state(gnutls_session_t session, int ksd, bool 
 
 	rc = setsockopt(ksd, SOL_TLS, optname,
 			&crypto_info, sizeof(crypto_info));
+	printf("setsockopt(ksd, SOL_TLS, optname...\n");
 	if (rc < 0) {
 		print_error("failed to set send crypto info using setsockopt(2) %d", rc);
 		goto err;
@@ -110,7 +113,7 @@ err:
 
 static int ktls_socket_get_crypto_state(gnutls_session_t session, int ksd, bool send)
 {
-	struct tls12_crypto_info_aes_gcm_128 crypto_info;
+	struct tls12_crypto_info_aes_gcm_256 crypto_info;
 	int optname, rc = -1;
 	socklen_t optlen = sizeof(crypto_info);
 
@@ -138,7 +141,7 @@ static int ktls_socket_get_crypto_state(gnutls_session_t session, int ksd, bool 
 	}
 
 	/* check cipher */
-	if (crypto_info.info.cipher_type != TLS_CIPHER_AES_GCM_128) {
+	if (crypto_info.info.cipher_type != TLS_CIPHER_AES_GCM_256) {
 		print_error("incorrect cipher type queried");
 		goto err;
 	}
@@ -163,20 +166,24 @@ extern int ktls_socket_init(gnutls_session_t session, int sd, size_t sendfile_mt
 extern int ktls_socket_init(gnutls_session_t session, int sd, bool send, bool tls)
 #endif
 {
+	printf("ktls_socket_init...\n");
 	int err;
 
+	//if (send) {
 	err = ktls_socket_set_crypto_state(session, sd, true, tls);
 	if (err) {
 		print_error("failed to set crypto state send");
 		goto set_crypto_error;
 	}
         printf("Set crypto state send\n");
+	//} else {
 	err = ktls_socket_set_crypto_state(session, sd, false, tls);
 	if (err) {
 		print_error("failed to set crypto state recv");
 		goto set_crypto_error;
 	}
         printf("Set cryto state recv\n");
+	//}
 
 #ifdef TLS_SET_MTU
 	if (sendfile_mtu) {

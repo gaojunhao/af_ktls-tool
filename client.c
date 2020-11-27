@@ -947,6 +947,7 @@ static int do_action(const struct client_opts *opts, gnutls_session_t session,  
 	}
 
 	if (opts->send_gnutls_time) {
+		printf("do_action->send_gnutls_time...\n");
 		err = do_gnutls_send_time(opts, session, mem);
 		if (err < 0) {
 			print_error("failed to do Gnu TLS gnutls_record_send()");
@@ -1152,24 +1153,32 @@ static int run_client(const struct client_opts *opts) {
 		err = do_plain_action(opts, sd);
 
 	} else {
-		if (opts->tls)
+		if (opts->tls) {
+			printf("server_port:%d\n", opts->server_port);
 			sd = tcp_connect(host, opts->server_port);
-		else
+			printf("tcp_connect...sd:%d\n", sd);
+		}
+		else {
 			sd = udp_connect(host, opts->server_port);
-
+			printf("udp_connect...\n");
+		}
 		if (sd < 0)
 			goto end;
 
-		if (opts->tls)
+		if (opts->tls) {
 			err = xlibgnutls_tls_handshake(&session, sd, opts->verbose_level);
-		else
+			printf("xlibgnutls_tls_handshake...\n");
+		}
+		else {
 			err = xlibgnutls_dtls_handshake(&session, sd, opts->verbose_level);
+		}
 
 		if (err < 0) {
 			print_error("failed to do handshake");
 			goto end;
 		}
 		print_touch_reset(); // handshake does not taint benchmarks, so reset flag
+		printf("do_action...\n");
 		err = do_action(opts, session, sd);
 
 		if (opts->tls)

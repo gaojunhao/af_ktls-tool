@@ -140,12 +140,12 @@ extern int xlibgnutls_tls_handshake(gnutls_session_t *session, int tcp_sd, unsig
 	while (ret < 0 && gnutls_error_is_fatal(ret) == 0);
 
 	if (ret < 0) {
-		print_error("handshake failed");
+		printf("handshake failed");
 		gnutls_perror(ret);
 	} else {
 		char *desc;
 		desc = gnutls_session_get_desc(*session);
-		print_info("- Session info: %s\n", desc);
+		printf("- Session info: %s\n", desc);
 		gnutls_free(desc);
 	}
 

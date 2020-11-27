@@ -175,7 +175,7 @@ static int parse_opts(struct server_opts *opts, int argc, char *argv[]) {
 					print_error("multiple --store supplied");
 					return 1;
 				}
-				opts->store_file = open(optarg, O_WRONLY|O_CREAT|O_TRUNC);
+				opts->store_file = open(optarg, O_WRONLY|O_CREAT|O_TRUNC, 0777);
 				if (opts->store_file < 0) {
 					perror(optarg);
 					return 1;

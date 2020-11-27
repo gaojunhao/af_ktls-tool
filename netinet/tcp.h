@@ -284,6 +284,13 @@ struct tcp_md5sig
 #define TLS_CIPHER_AES_GCM_128_TAG_SIZE		((size_t)16)
 #define TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE	((size_t)8)
 
+#define TLS_CIPHER_AES_GCM_256			52
+#define TLS_CIPHER_AES_GCM_256_IV_SIZE		((size_t)8)
+#define TLS_CIPHER_AES_GCM_256_KEY_SIZE		((size_t)32)
+#define TLS_CIPHER_AES_GCM_256_SALT_SIZE	((size_t)4)
+#define TLS_CIPHER_AES_GCM_256_TAG_SIZE		((size_t)16)
+#define TLS_CIPHER_AES_GCM_256_REC_SEQ_SIZE	((size_t)8)
+
 #define TLS_SET_RECORD_TYPE	1
 
 struct tls_crypto_info {
@@ -297,6 +304,13 @@ struct tls12_crypto_info_aes_gcm_128 {
 	unsigned char key[TLS_CIPHER_AES_GCM_128_KEY_SIZE];
 	unsigned char salt[TLS_CIPHER_AES_GCM_128_SALT_SIZE];
 	unsigned char rec_seq[TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE];
+};
+struct tls12_crypto_info_aes_gcm_256 {
+	struct tls_crypto_info info;
+	unsigned char iv[TLS_CIPHER_AES_GCM_256_IV_SIZE];
+	unsigned char key[TLS_CIPHER_AES_GCM_256_KEY_SIZE];
+	unsigned char salt[TLS_CIPHER_AES_GCM_256_SALT_SIZE];
+	unsigned char rec_seq[TLS_CIPHER_AES_GCM_256_REC_SEQ_SIZE];
 };
 /****************************************************/
 

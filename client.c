@@ -403,6 +403,7 @@ static int parse_opts(struct client_opts *opts, int argc, char *argv[]) {
 #endif
 			case OPT_SENDFILE_MTU:
 				opts->sendfile_mtu = strtoul(optarg, &tmp_ptr, 10);
+				printf("opts->sendfile_mtu: %ld\n", opts->sendfile_mtu);
 				if (*tmp_ptr != '\0' || opts->sendfile_mtu == 0) {
 					print_error("unknown sendfile(2) MTU size '%s'", optarg);
 					return -1;
@@ -876,6 +877,7 @@ static int do_plain_action(const struct client_opts *opts, int sd) {
 	int err;
 
 	if (opts->plain_sendfile) {
+		printf("do_plain_sendfile...\n");
 		err = do_plain_sendfile(opts, sd);
 		if (err < 0) {
 			print_error("failed to do plain sendfile");
@@ -985,8 +987,10 @@ static int do_action(const struct client_opts *opts, gnutls_session_t session,  
 
 	if (opts->ktls) {
 #ifdef TLS_SET_MTU
+		printf("### TLS_SET_MTU ###\n");
 		err = ktls_socket_init(session, udp_sd, opts->sendfile_mtu, true, opts->tls);
 #else
+		printf("### NOT TLS_SET_MTU ###\n");
 		err = ktls_socket_init(session, udp_sd, true, opts->tls);
 #endif
 		if (err < 0) {
@@ -1141,18 +1145,21 @@ static int run_client(const struct client_opts *opts) {
 			opts->plain_sendfile_user ||
 			opts->plain_sendfile_mmap ||
 			opts->plain_splice_emu) {
-		if (opts->tcp)
+		if (opts->tcp){
+			printf("plain_sendfile tcp_connect...\n");
 			sd = tcp_connect(host, opts->server_port);
-		else
+		} else {
 			sd = udp_connect(host, opts->server_port);
-
+		}
 		if (sd < 0)
 			goto end;
 
 		// these tests do not require TLS, so no handshake is done and so
+		printf("do_plain_action...\n");
 		err = do_plain_action(opts, sd);
 
 	} else {
+		printf("tls...\n");
 		if (opts->tls) {
 			printf("server_port:%d\n", opts->server_port);
 			sd = tcp_connect(host, opts->server_port);
@@ -1166,6 +1173,7 @@ static int run_client(const struct client_opts *opts) {
 			goto end;
 
 		if (opts->tls) {
+			printf("xlibgnutls_tls_handshake begin...\n");
 			err = xlibgnutls_tls_handshake(&session, sd, opts->verbose_level);
 			printf("xlibgnutls_tls_handshake...\n");
 		}

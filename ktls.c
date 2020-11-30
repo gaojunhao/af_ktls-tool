@@ -18,7 +18,7 @@
 #include "ktls.h"
 
 #include "netinet/tcp.h"
-
+//#define TLS_SET_MTU 1
 static int ktls_socket_set_crypto_state(gnutls_session_t session, int ksd, bool send, bool tls)
 {
 	struct tls12_crypto_info_aes_gcm_256 crypto_info;

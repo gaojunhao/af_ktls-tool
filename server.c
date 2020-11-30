@@ -45,7 +45,7 @@
 #define CRLFILE "/etc/ocserv/cert.key"
 
 #define SOCKET_ERR(err,s) if(err==-1) {perror(s);return(1);}
-
+//#define TLS_SET_MTU 1
 /*
  * we will do it with global var since we want to capture error in thread even
  * in a standalone process and we want to keep it simple; modified only by
@@ -620,7 +620,7 @@ static int tls_run_server(struct server_opts *opts) {
 	client_len = sizeof(sa_cli);
 	for (;;) {
 		gnutls_init(&session, GNUTLS_SERVER);
-		gnutls_priority_set_direct(session, "NORMAL:+ANON-DH:+AES-128-GCM", NULL);
+		gnutls_priority_set_direct(session, "NORMAL:+ANON-DH:+AES-256-GCM", NULL);
 		gnutls_credentials_set(session, GNUTLS_CRD_ANON, anoncred);
 		printf("wait for accepting...\n");
 		sd = accept(listen_sd, (struct sockaddr *) &sa_cli, &client_len);
@@ -629,9 +629,10 @@ static int tls_run_server(struct server_opts *opts) {
 					sizeof(topbuf)), ntohs(sa_cli.sin_port));
 
 		gnutls_transport_set_int(session, sd);
-
+		printf("server main - 1\n");
 		do {
 			ret = gnutls_handshake(session);
+			printf("server main - 2\n");
 		} while (ret < 0 && gnutls_error_is_fatal(ret) == 0);
 
 		if (ret < 0) {
@@ -686,6 +687,7 @@ extern void *run_server(void *arg) {
 
 	if (opts->no_tls) {
 		if (opts->tcp) {
+			printf("plain_tcp_server...\n");
 			ret = plain_tcp_server(opts);
 		} else {
 			ret = plain_udp_server(opts);

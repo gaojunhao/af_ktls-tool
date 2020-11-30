@@ -37,7 +37,7 @@
 #include "action.h"
 
 #define MIN(A, B)	((A) < (B) ? (A) : (B))
-
+#define TLS_SET_MTU 1
 static ssize_t get_file_size(int fd) {
 	ssize_t err;
 	ssize_t filesize;
@@ -1406,38 +1406,50 @@ extern int do_plain_sendfile(const struct client_opts *opts, int sd) {
 	size_t sent, mtu;
 	clock_t start, end;
 
+	printf("do_plain_sendfile - 1 ...\n");
 	fd = open(opts->plain_sendfile, O_RDONLY);
+	printf("do_plain_sendfile - 2 ...\n");
 	if (fd < 0) {
 		perror("open");
 		err = fd;
 		goto out;
 	}
 
+	printf("do_plain_sendfile - 3 ...\n");
 	if (opts->sendfile_size == 0) {
+		printf("do_plain_sendfile - 4 ...\n");
 		filesize = get_file_size(fd);
 		if (filesize < 0) {
 			err = filesize;
 			goto out;
 		}
 	} else
-		filesize = opts->sendfile_size;
+		printf("do_plain_sendfile - 5 ...\n");
+		//filesize = opts->sendfile_size;
+		filesize = get_file_size(fd);
+		printf("filesize:%d...\n", filesize);
 
 #ifdef TLS_SET_MTU
+	printf("TLS_SET_MTU...\n");
 	if (opts->sendfile_mtu)
 		mtu = MIN(filesize, opts->sendfile_mtu);
 	else
 		mtu = filesize;
 #else
+	printf("NOT TLS_SET_MTU...\n");
 	mtu = filesize;
 #endif
 
 	// we do this explicitly because of get_file_size()
 	DO_DROP_CACHES(opts);
-
+	int file_size = 0;
 	start = clock();
 
-	for (sent = 0; sent != filesize; sent += err) {
+	//for (sent = 0; sent != filesize; sent += err) {
+	for (sent = 0; sent < filesize; sent += err) {
 		err = sendfile(sd, fd, &offset, mtu);
+		file_size += err;
+		printf("sendfile err:%d, sent file_size:%d, all file size:%ld...\n", err, file_size, filesize);
 		if (err < 0) {
 			perror("sendfile");
 		}

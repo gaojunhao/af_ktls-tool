@@ -954,13 +954,16 @@ extern int do_sendfile_mmap(const struct client_opts *opts, gnutls_session_t ses
 	ssize_t filesize;
 	char *buf = NULL;
 
+	printf("do_sendfile_mmap - 1...\n");
 	in_fd = open(opts->sendfile_mmap, O_RDONLY);
 	if (in_fd < 0) {
 		perror("open");
 		goto out;
 	}
-
+	printf("do_sendfile_mmap - 2...\n");
+	//opts->sendfile_size = get_file_size(in_fd);	
 	if (opts->sendfile_size == 0) {
+		printf("do_sendfile_mmap - 3...\n");
 		filesize = lseek(in_fd, 0L, SEEK_END);
 		if (filesize < 0) {
 			perror("lseek() to EOF");
@@ -974,11 +977,11 @@ extern int do_sendfile_mmap(const struct client_opts *opts, gnutls_session_t ses
 		}
 	} else {
 		filesize = opts->sendfile_size;
+		printf("do_sendfile_mmap - 4, filesize:%ld...\n",filesize);
 	}
 
 	// we explicitly drop caches since we used seek
 	DO_DROP_CACHES(opts);
-
 	start = clock();
 
 	buf = mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, in_fd, /*offset*/ 0);
@@ -986,12 +989,15 @@ extern int do_sendfile_mmap(const struct client_opts *opts, gnutls_session_t ses
 		perror("mmap");
 		goto out;
 	}
-
+	
 	for (total = 0; total != filesize; total += err) {
 #ifdef TLS_SET_MTU
+		//printf("do_sendfile_mmap - 5...\n");
 		err = gnutls_record_send(session, buf + total, MIN(opts->sendfile_mtu, filesize - total));
 #else
+		//printf("do_sendfile_mmap - 6...\n");
 		err = gnutls_record_send(session, buf + total, filesize - total);
+		//printf("do_sendfile_mmap - 7, err:%ld...\n", err);
 #endif
 		if (err < 0) {
 			print_error("failed to send via Gnu TLS");
@@ -1427,7 +1433,7 @@ extern int do_plain_sendfile(const struct client_opts *opts, int sd) {
 		printf("do_plain_sendfile - 5 ...\n");
 		//filesize = opts->sendfile_size;
 		filesize = get_file_size(fd);
-		printf("filesize:%d...\n", filesize);
+		printf("filesize:%ld...\n", filesize);
 
 #ifdef TLS_SET_MTU
 	printf("TLS_SET_MTU...\n");
@@ -1449,7 +1455,7 @@ extern int do_plain_sendfile(const struct client_opts *opts, int sd) {
 	for (sent = 0; sent < filesize; sent += err) {
 		err = sendfile(sd, fd, &offset, mtu);
 		file_size += err;
-		printf("sendfile err:%d, sent file_size:%d, all file size:%ld...\n", err, file_size, filesize);
+	//	printf("sendfile err:%d, sent file_size:%d, all file size:%ld...\n", err, file_size, filesize);
 		if (err < 0) {
 			perror("sendfile");
 		}

@@ -651,6 +651,7 @@ static int tls_run_server(struct server_opts *opts) {
 			printf("server_ktls_loop...\n");
 			server_ktls_loop(opts, session, sd, (struct sockaddr *)&sa_cli, sizeof(sa_cli), buffer);
 		} else {
+			printf("server_gnutls_loop...\n");
 			server_gnutls_loop(opts, session, buffer, sd);
 		}
 		gettimeofday(&end, NULL);

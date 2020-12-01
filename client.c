@@ -690,7 +690,7 @@ static int parse_opts(struct client_opts *opts, int argc, char *argv[]) {
 		print_error("--sendfile-mtu required");
 		return -1;
 	}
-
+/*
 	if (opts->sendfile_mtu &&
 			!opts->sendfile &&
 			!opts->sendfile_user &&
@@ -706,7 +706,7 @@ static int parse_opts(struct client_opts *opts, int argc, char *argv[]) {
 		print_error("invalid use of --sendfile-mtu");
 		return -1;
 	}
-
+*/
 
 	if (!opts->splice_count && !opts->splice_time && opts->splice_file) {
 		print_error("--splice-file can be used only with --splice-{time,count}");
@@ -768,6 +768,7 @@ static int parse_opts(struct client_opts *opts, int argc, char *argv[]) {
 			) {
 #endif
 		opts->ktls = true;
+		//opts->ktls = false;
 	}
 
 	return 0;

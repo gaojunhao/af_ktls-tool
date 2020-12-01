@@ -37,7 +37,7 @@
 #include "action.h"
 
 #define MIN(A, B)	((A) < (B) ? (A) : (B))
-#define TLS_SET_MTU 1
+//#define TLS_SET_MTU 1
 static ssize_t get_file_size(int fd) {
 	ssize_t err;
 	ssize_t filesize;
@@ -1450,16 +1450,16 @@ extern int do_plain_sendfile(const struct client_opts *opts, int sd) {
 	DO_DROP_CACHES(opts);
 	int file_size = 0;
 	start = clock();
-
+	printf("filesize:%ld, mtu:%ld\n", filesize, mtu);
 	//for (sent = 0; sent != filesize; sent += err) {
-	for (sent = 0; sent < filesize; sent += err) {
+	//for (sent = 0; sent < filesize; sent += err) {
 		err = sendfile(sd, fd, &offset, mtu);
-		file_size += err;
+	//	file_size += err;
 	//	printf("sendfile err:%d, sent file_size:%d, all file size:%ld...\n", err, file_size, filesize);
 		if (err < 0) {
 			perror("sendfile");
 		}
-	}
+	//}
 
 	end = clock();
 

@@ -676,12 +676,13 @@ static int parse_opts(struct client_opts *opts, int argc, char *argv[]) {
 		print_error("--sendfile-user requires MTU specified with --sendfile-mtu");
 		return -1;
 	}
-
+/*
 	if (opts->sendfile_mmap && !opts->sendfile_mtu) {
 		print_error("--sendfile-mmap requires MTU specified with --sendfile-mtu");
 		return -1;
 	}
-
+*/
+/*
 	if (!opts->sendfile_mtu &&
 			(opts->plain_sendfile ||
 			 opts->plain_sendfile_mmap ||
@@ -690,6 +691,7 @@ static int parse_opts(struct client_opts *opts, int argc, char *argv[]) {
 		print_error("--sendfile-mtu required");
 		return -1;
 	}
+*/
 /*
 	if (opts->sendfile_mtu &&
 			!opts->sendfile &&

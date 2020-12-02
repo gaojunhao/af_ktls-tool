@@ -70,12 +70,10 @@ extern int plain_tcp_server(const struct server_opts *opts) {
 		perror("accept");
 		goto end;
     }
-	printf("accept(sd, (struct sockaddr *)&si_other, (socklen_t*)&slen)...\n");
     int file_size = 0;
     for (;;) {
     	err = recv(sd_client, buf, BUFSIZE, 0);
 	file_size += err;
-	printf("recv(sd_client, buf, BUFSIZE, 0) err:%d, file_size:%d...\n", err, file_size);
     	if (err < 0) {
     		perror("recv");
     		goto end;

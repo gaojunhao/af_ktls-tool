@@ -60,9 +60,7 @@ extern int tcp_connect(const char *host, unsigned port) {
 	sa.sin_port = htons(port);
 	inet_pton(AF_INET, host, &sa.sin_addr);
 
-	printf("tcp_connect  connect(sd, ...\n");
 	err = connect(sd, (struct sockaddr *) &sa, sizeof(sa));
-	printf("err value:%d, sd value:%d\n", err, sd);
 
 	return err ? err : sd;
 }

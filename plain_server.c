@@ -97,7 +97,6 @@ extern int plain_tcp_server(const struct server_opts *opts) {
 
 end:
 	if (buf) {
-		printf("free(buf)...\n");
 		free(buf);
 	}
 	if (sd > 0)

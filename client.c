@@ -880,6 +880,7 @@ static int do_plain_action(const struct client_opts *opts, int sd) {
 	int err;
 
 	if (opts->plain_sendfile) {
+		/* don't remove this printf line, that will cause Heisenbugs */
 		printf("do_plain_sendfile...\n");
 		err = do_plain_sendfile(opts, sd);
 		if (err < 0) {

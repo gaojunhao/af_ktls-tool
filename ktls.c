@@ -90,7 +90,6 @@ static int ktls_socket_set_crypto_state(gnutls_session_t session, int ksd, bool 
 	}
         if (send) {
           rc = setsockopt(ksd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
-	  printf("setsockopt(ksd, SOL_TCP, TCP_ULP...\n");
           if (rc < 0) {
             print_error("failed to set ULP %d\n", rc);
             goto err;
@@ -99,12 +98,21 @@ static int ktls_socket_set_crypto_state(gnutls_session_t session, int ksd, bool 
 
 	rc = setsockopt(ksd, SOL_TLS, optname,
 			&crypto_info, sizeof(crypto_info));
-	printf("setsockopt(ksd, SOL_TLS, optname...\n");
 	if (rc < 0) {
 		print_error("failed to set send crypto info using setsockopt(2) %d", rc);
 		goto err;
+	}/*
+	int err = 0;
+#ifdef TLS_SET_MTU
+	if (sendfile_mtu) {
+		err = setsockopt(ksd, SOL_TLS, TLS_SET_MTU, &sendfile_mtu, sizeof(sendfile_mtu));
+		if (err < 0) {
+			perror("setsockopt");
+			print_error("failed to set MTU on AF_KTLS socket using setsockopt(2)");
+			goto err;
+		}
 	}
-
+#endif*/
 	return 0;
 
 err:
@@ -166,36 +174,31 @@ extern int ktls_socket_init(gnutls_session_t session, int sd, size_t sendfile_mt
 extern int ktls_socket_init(gnutls_session_t session, int sd, bool send, bool tls)
 #endif
 {
-	printf("ktls_socket_init...\n");
 	int err;
 
-	//if (send) {
 	err = ktls_socket_set_crypto_state(session, sd, true, tls);
 	if (err) {
 		print_error("failed to set crypto state send");
 		goto set_crypto_error;
 	}
         printf("Set crypto state send\n");
-	//} else {
 	err = ktls_socket_set_crypto_state(session, sd, false, tls);
 	if (err) {
 		print_error("failed to set crypto state recv");
 		goto set_crypto_error;
 	}
         printf("Set cryto state recv\n");
-	//}
 
 #ifdef TLS_SET_MTU
-	if (sendfile_mtu) {
-		err = setsockopt(ksd, AF_KTLS, KTLS_SET_MTU, &sendfile_mtu, sizeof(sendfile_mtu));
-		if (err < 0) {
-			perror("setsockopt");
-			print_error("failed to set MTU on AF_KTLS socket using setsockopt(2)");
-			goto init_error;
-		}
-	}
+        if (sendfile_mtu) {
+                err = setsockopt(sd, SOL_TCP, TCP_MAXSEG, &sendfile_mtu, sizeof(sendfile_mtu));
+                if (err < 0) {
+                        perror("setsockopt");
+                        print_error("failed to set MTU on AF_KTLS socket using setsockopt(2)");
+                        goto set_crypto_error;
+                }
+        }
 #endif
-
 	return 0;
 
 set_crypto_error:

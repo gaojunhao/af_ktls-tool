@@ -954,16 +954,13 @@ extern int do_sendfile_mmap(const struct client_opts *opts, gnutls_session_t ses
 	ssize_t filesize;
 	char *buf = NULL;
 
-	printf("do_sendfile_mmap - 1...\n");
 	in_fd = open(opts->sendfile_mmap, O_RDONLY);
 	if (in_fd < 0) {
 		perror("open");
 		goto out;
 	}
-	printf("do_sendfile_mmap - 2...\n");
 	//opts->sendfile_size = get_file_size(in_fd);	
 	if (opts->sendfile_size == 0) {
-		printf("do_sendfile_mmap - 3...\n");
 		filesize = lseek(in_fd, 0L, SEEK_END);
 		if (filesize < 0) {
 			perror("lseek() to EOF");
@@ -977,7 +974,6 @@ extern int do_sendfile_mmap(const struct client_opts *opts, gnutls_session_t ses
 		}
 	} else {
 		filesize = opts->sendfile_size;
-		printf("do_sendfile_mmap - 4, filesize:%ld...\n",filesize);
 	}
 
 	// we explicitly drop caches since we used seek
@@ -992,12 +988,9 @@ extern int do_sendfile_mmap(const struct client_opts *opts, gnutls_session_t ses
 	
 	for (total = 0; total != filesize; total += err) {
 #ifdef TLS_SET_MTU
-		//printf("do_sendfile_mmap - 5...\n");
 		err = gnutls_record_send(session, buf + total, MIN(opts->sendfile_mtu, filesize - total));
 #else
-		//printf("do_sendfile_mmap - 6...\n");
 		err = gnutls_record_send(session, buf + total, filesize - total);
-		//printf("do_sendfile_mmap - 7, err:%ld...\n", err);
 #endif
 		if (err < 0) {
 			print_error("failed to send via Gnu TLS");
@@ -1412,37 +1405,29 @@ extern int do_plain_sendfile(const struct client_opts *opts, int sd) {
 	size_t sent, mtu;
 	clock_t start, end;
 
-	printf("do_plain_sendfile - 1 ...\n");
 	fd = open(opts->plain_sendfile, O_RDONLY);
-	printf("do_plain_sendfile - 2 ...\n");
 	if (fd < 0) {
 		perror("open");
 		err = fd;
 		goto out;
 	}
 
-	printf("do_plain_sendfile - 3 ...\n");
 	if (opts->sendfile_size == 0) {
-		printf("do_plain_sendfile - 4 ...\n");
 		filesize = get_file_size(fd);
 		if (filesize < 0) {
 			err = filesize;
 			goto out;
 		}
 	} else
-		printf("do_plain_sendfile - 5 ...\n");
 		//filesize = opts->sendfile_size;
 		filesize = get_file_size(fd);
-		printf("filesize:%ld...\n", filesize);
 
 #ifdef TLS_SET_MTU
-	printf("TLS_SET_MTU...\n");
 	if (opts->sendfile_mtu)
 		mtu = MIN(filesize, opts->sendfile_mtu);
 	else
 		mtu = filesize;
 #else
-	printf("NOT TLS_SET_MTU...\n");
 	mtu = filesize;
 #endif
 

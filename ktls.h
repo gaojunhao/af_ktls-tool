@@ -11,7 +11,7 @@
 
 #ifndef KTLS_H_
 #define KTLS_H_
-
+#define TLS_SET_MTU 1
 #ifdef TLS_SET_MTU
 extern int ktls_socket_init(gnutls_session_t session, int sd, size_t sendfile_mtu, bool send, bool tls);
 #else

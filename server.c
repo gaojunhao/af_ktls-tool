@@ -86,7 +86,7 @@ static int server_gnutls_loop(const struct server_opts *opts, gnutls_session_t s
 			do {
 				ret = gnutls_record_recv_seq(session, buffer, opts->mtu, sequence);
 			} while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
-			print_info("gnutls_record_recv_seq, ret=%d\n", ret);
+			//print_info("gnutls_record_recv_seq, ret=%d\n", ret);
 		} else {
 			ret = recv(sd, buffer, opts->mtu, 0);
 			if (ret < 0) {
@@ -143,7 +143,6 @@ static int server_gnutls_loop(const struct server_opts *opts, gnutls_session_t s
 		if (opts->store_file)
 			write(opts->store_file, buffer, ret);
 	}
-	printf("server loop done\n");
 	return ret < 0 ? ret : 0;
 }
 
@@ -575,7 +574,6 @@ static int tls_run_server(struct server_opts *opts) {
 
 	// TODO: review printing
 
-	printf("tls_run_server...\n");
 	if (gnutls_check_version("3.1.4") == NULL) {
 		print_error("GnuTLS 3.1.4 or later is required for this example\n");
 		return -1;
@@ -629,10 +627,8 @@ static int tls_run_server(struct server_opts *opts) {
 					sizeof(topbuf)), ntohs(sa_cli.sin_port));
 
 		gnutls_transport_set_int(session, sd);
-		printf("server main - 1\n");
 		do {
 			ret = gnutls_handshake(session);
-			printf("server main - 2\n");
 		} while (ret < 0 && gnutls_error_is_fatal(ret) == 0);
 
 		if (ret < 0) {
@@ -648,10 +644,8 @@ static int tls_run_server(struct server_opts *opts) {
 
 		gettimeofday(&begin, NULL);
 		if (opts->ktls) {
-			printf("server_ktls_loop...\n");
 			server_ktls_loop(opts, session, sd, (struct sockaddr *)&sa_cli, sizeof(sa_cli), buffer);
 		} else {
-			printf("server_gnutls_loop...\n");
 			server_gnutls_loop(opts, session, buffer, sd);
 		}
 		gettimeofday(&end, NULL);
@@ -688,7 +682,6 @@ extern void *run_server(void *arg) {
 
 	if (opts->no_tls) {
 		if (opts->tcp) {
-			printf("plain_tcp_server...\n");
 			ret = plain_tcp_server(opts);
 		} else {
 			ret = plain_udp_server(opts);

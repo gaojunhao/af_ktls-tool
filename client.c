@@ -51,7 +51,7 @@
 #define TLS_MAX_PACKET_LENGTH   ((size_t)(1 << 12))
 #define DTLS_OVERHEAD           ((size_t)(13 + 8 + 16))
 #define TLS_OVERHEAD            ((size_t)(5 + 8 + 16))
-
+#define TLS_SET_MTU 1
 #define OPT_TLS                   't'
 #define OPT_DTLS                  'd'
 #define OPT_SERVER_HOST           3
@@ -878,6 +878,7 @@ static int do_plain_action(const struct client_opts *opts, int sd) {
 	int err;
 
 	if (opts->plain_sendfile) {
+		/* this line can't be removed caused by heisenbug */
 		printf("do_plain_sendfile...\n");
 		err = do_plain_sendfile(opts, sd);
 		if (err < 0) {
@@ -988,10 +989,8 @@ static int do_action(const struct client_opts *opts, gnutls_session_t session,  
 
 	if (opts->ktls) {
 #ifdef TLS_SET_MTU
-		printf("### TLS_SET_MTU ###\n");
 		err = ktls_socket_init(session, udp_sd, opts->sendfile_mtu, true, opts->tls);
 #else
-		printf("### NOT TLS_SET_MTU ###\n");
 		err = ktls_socket_init(session, udp_sd, true, opts->tls);
 #endif
 		if (err < 0) {
@@ -1147,7 +1146,6 @@ static int run_client(const struct client_opts *opts) {
 			opts->plain_sendfile_mmap ||
 			opts->plain_splice_emu) {
 		if (opts->tcp){
-			printf("plain_sendfile tcp_connect...\n");
 			sd = tcp_connect(host, opts->server_port);
 		} else {
 			sd = udp_connect(host, opts->server_port);
@@ -1156,27 +1154,20 @@ static int run_client(const struct client_opts *opts) {
 			goto end;
 
 		// these tests do not require TLS, so no handshake is done and so
-		printf("do_plain_action...\n");
 		err = do_plain_action(opts, sd);
 
 	} else {
-		printf("tls...\n");
 		if (opts->tls) {
-			printf("server_port:%d\n", opts->server_port);
 			sd = tcp_connect(host, opts->server_port);
-			printf("tcp_connect...sd:%d\n", sd);
 		}
 		else {
 			sd = udp_connect(host, opts->server_port);
-			printf("udp_connect...\n");
 		}
 		if (sd < 0)
 			goto end;
 
 		if (opts->tls) {
-			printf("xlibgnutls_tls_handshake begin...\n");
 			err = xlibgnutls_tls_handshake(&session, sd, opts->verbose_level);
-			printf("xlibgnutls_tls_handshake...\n");
 		}
 		else {
 			err = xlibgnutls_dtls_handshake(&session, sd, opts->verbose_level);
@@ -1187,7 +1178,6 @@ static int run_client(const struct client_opts *opts) {
 			goto end;
 		}
 		print_touch_reset(); // handshake does not taint benchmarks, so reset flag
-		printf("do_action...\n");
 		err = do_action(opts, session, sd);
 
 		if (opts->tls)

@@ -129,7 +129,9 @@ extern int xlibgnutls_tls_handshake(gnutls_session_t *session, int tcp_sd, unsig
 	gnutls_anon_allocate_client_credentials(&anoncred);
 	gnutls_init(session, GNUTLS_CLIENT);
 
-	gnutls_priority_set_direct(*session, "NORMAL:+ANON-ECDH:+ANON-DH", NULL);
+	//gnutls_priority_set_direct(*session, "NORMAL:+ANON-ECDH:+ANON-DH", NULL);
+	gnutls_priority_set_direct(*session, "PERFORMANCE:+ANON-DH:+AES-128-GCM", NULL);
+	//gnutls_priority_set_direct(*session, "NORMAL:+ANON-DH:+AES-128-GCM", NULL);
 	gnutls_credentials_set(*session, GNUTLS_CRD_ANON, anoncred);
 	gnutls_transport_set_int(*session, tcp_sd);
 	gnutls_handshake_set_timeout(*session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);

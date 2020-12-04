@@ -619,7 +619,8 @@ static int tls_run_server(struct server_opts *opts) {
 	client_len = sizeof(sa_cli);
 	for (;;) {
 		gnutls_init(&session, GNUTLS_SERVER);
-		gnutls_priority_set_direct(session, "NORMAL:+ANON-DH:+AES-256-GCM", NULL);
+		//gnutls_priority_set_direct(session, "NORMAL:+ANON-DH:+AES-128-GCM", NULL);
+		gnutls_priority_set_direct(session, "PERFORMANCE:+ANON-DH:+AES-128-GCM", NULL);
 		gnutls_credentials_set(session, GNUTLS_CRD_ANON, anoncred);
 		printf("wait for accepting...\n");
 		sd = accept(listen_sd, (struct sockaddr *) &sa_cli, &client_len);

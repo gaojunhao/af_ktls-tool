@@ -21,7 +21,7 @@
 //#define TLS_SET_MTU 1
 static int ktls_socket_set_crypto_state(gnutls_session_t session, int ksd, bool send, bool tls)
 {
-	struct tls12_crypto_info_aes_gcm_256 crypto_info;
+	struct tls12_crypto_info_aes_gcm_128 crypto_info;
 	int optname, rc = -1;
 	gnutls_datum_t mac_key;
 	gnutls_datum_t iv_read;
@@ -51,19 +51,19 @@ static int ktls_socket_set_crypto_state(gnutls_session_t session, int ksd, bool 
 
 	/* cipher type is hardcoded for now
 	 * TODO: [AY] get it from certificate */
-	//crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
-	crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_256;
+	crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
+	//crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_256;
 
 	if (send) {
-		memcpy(crypto_info.iv, seq_number_write, TLS_CIPHER_AES_GCM_256_IV_SIZE);
+		memcpy(crypto_info.iv, seq_number_write, TLS_CIPHER_AES_GCM_128_IV_SIZE);
 		memcpy(crypto_info.rec_seq, seq_number_write,
-		       TLS_CIPHER_AES_GCM_256_REC_SEQ_SIZE);
-		if (cipher_key_write.size != TLS_CIPHER_AES_GCM_256_KEY_SIZE) {
+		       TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
+		if (cipher_key_write.size != TLS_CIPHER_AES_GCM_128_KEY_SIZE) {
 			print_error("mismatch in send key size");
 			goto err;
 		}
-		memcpy(crypto_info.key, cipher_key_write.data, TLS_CIPHER_AES_GCM_256_KEY_SIZE);
-		memcpy(crypto_info.salt, iv_write.data, TLS_CIPHER_AES_GCM_256_SALT_SIZE);
+		memcpy(crypto_info.key, cipher_key_write.data, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+		memcpy(crypto_info.salt, iv_write.data, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
 		optname = TLS_TX;
 	} else {
 		/*
@@ -76,15 +76,15 @@ static int ktls_socket_set_crypto_state(gnutls_session_t session, int ksd, bool 
 			seq_number_read[1] = 1;
 			seq_number_read[7] = 1;
 		}
-		memcpy(crypto_info.iv, seq_number_read, TLS_CIPHER_AES_GCM_256_IV_SIZE);
+		memcpy(crypto_info.iv, seq_number_read, TLS_CIPHER_AES_GCM_128_IV_SIZE);
 		memcpy(crypto_info.rec_seq, seq_number_read,
-		       TLS_CIPHER_AES_GCM_256_REC_SEQ_SIZE);
-		if (cipher_key_read.size != TLS_CIPHER_AES_GCM_256_KEY_SIZE) {
+		       TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
+		if (cipher_key_read.size != TLS_CIPHER_AES_GCM_128_KEY_SIZE) {
 			print_error("mismatch in recv key size");
 			goto err;
 		}
-		memcpy(crypto_info.key, cipher_key_read.data, TLS_CIPHER_AES_GCM_256_KEY_SIZE);
-		memcpy(crypto_info.salt, iv_read.data, TLS_CIPHER_AES_GCM_256_SALT_SIZE);
+		memcpy(crypto_info.key, cipher_key_read.data, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+		memcpy(crypto_info.salt, iv_read.data, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
 
 		optname = TLS_RX;
 	}
@@ -111,7 +111,7 @@ err:
 
 static int ktls_socket_get_crypto_state(gnutls_session_t session, int ksd, bool send)
 {
-	struct tls12_crypto_info_aes_gcm_256 crypto_info;
+	struct tls12_crypto_info_aes_gcm_128 crypto_info;
 	int optname, rc = -1;
 	socklen_t optlen = sizeof(crypto_info);
 
@@ -139,7 +139,7 @@ static int ktls_socket_get_crypto_state(gnutls_session_t session, int ksd, bool 
 	}
 
 	/* check cipher */
-	if (crypto_info.info.cipher_type != TLS_CIPHER_AES_GCM_256) {
+	if (crypto_info.info.cipher_type != TLS_CIPHER_AES_GCM_128) {
 		print_error("incorrect cipher type queried");
 		goto err;
 	}

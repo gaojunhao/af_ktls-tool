@@ -41,6 +41,7 @@ struct client_opts {
 	unsigned splice_count;
 	unsigned verbose_level;
 	const char *sendfile_mmap;
+	const char *ktls_sendfile_mmap;
 	time_t send_ktls_time;
 	time_t send_gnutls_time;
 	time_t splice_time;

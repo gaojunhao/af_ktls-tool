@@ -203,7 +203,7 @@ static void print_splice_time_stats(const struct client_opts *opts, size_t total
 	print_stats(msg, opts->payload_size, total_sent, total_recv, elapsed);
 }
 
-static void print_sendfile_mmap_stats(const struct client_opts *opts, size_t filesize, size_t total_sent, double clocks) {
+static void print_sendfile_mmap_stats(const struct client_opts *opts, const char* filename, size_t filesize, size_t total_sent, double clocks) {
 	const char *json_msg = \
 		"  {\n"
 		"    \"test\": \"sendfile mmap(2)\",\n"
@@ -227,7 +227,7 @@ static void print_sendfile_mmap_stats(const struct client_opts *opts, size_t fil
 
 	if (opts->json)
 		print_stats(json_msg,
-				opts->sendfile_mmap,
+				filename,
 				filesize,
 #ifdef TLS_SET_MTU
 				opts->sendfile_mtu,
@@ -235,7 +235,7 @@ static void print_sendfile_mmap_stats(const struct client_opts *opts, size_t fil
 				total_sent,
 				clocks);
 	else
-		print_stats(txt_msg, opts->sendfile_mmap, filesize, total_sent, clocks);
+		print_stats(txt_msg, filename, filesize, total_sent, clocks);
 }
 
 
@@ -999,8 +999,7 @@ extern int do_sendfile_mmap(const struct client_opts *opts, gnutls_session_t ses
 	}
 
 	end = clock();
-
-	print_sendfile_mmap_stats(opts, filesize, total, ((double) (end - start)) / CLOCKS_PER_SEC);
+	print_sendfile_mmap_stats(opts, opts->sendfile_mmap, filesize, total, ((double) (end - start)) / CLOCKS_PER_SEC);
 
 out:
 	if (buf)
@@ -1292,11 +1291,12 @@ extern int do_plain_sendfile_mmap(const struct client_opts *opts, int sd) {
 	} else
 		filesize = opts->sendfile_size;
 
-	mtu = MIN(filesize, opts->sendfile_mtu);
+//	mtu = MIN(filesize, opts->sendfile_mtu);
 
 	// we do this explicitly because of get_file_size()
 	DO_DROP_CACHES(opts);
 
+	start = clock();
 	mem = mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, fd, /*offset*/0);
 	if (!mem) {
 		perror("mmap");
@@ -1304,10 +1304,10 @@ extern int do_plain_sendfile_mmap(const struct client_opts *opts, int sd) {
 		goto out;
 	}
 
-	start = clock();
 
 	for (sent = 0; sent != filesize; sent += err) {
-		err = send(sd, mem + sent, MIN(filesize - sent, mtu), 0);
+		//err = send(sd, mem + sent, MIN(filesize - sent, mtu), 0);
+		err = send(sd, mem + sent, filesize - sent, 0);
 		if (err < 0) {
 			perror("sendfile");
 			goto out;
@@ -1315,9 +1315,7 @@ extern int do_plain_sendfile_mmap(const struct client_opts *opts, int sd) {
 	}
 
 	end = clock();
-
-	print_plain_stats(opts, "plain send file mmap", opts->plain_sendfile_mmap,
-			sent, 0, ((double) (end - start)) / CLOCKS_PER_SEC);
+	print_sendfile_mmap_stats(opts, opts->plain_sendfile_mmap, filesize, sent, ((double) (end - start)) / CLOCKS_PER_SEC);
 
 out:
 	if (fd > 0)
@@ -1328,7 +1326,66 @@ out:
 
 	return err;
 }
+extern int do_ktls_sendfile_mmap(const struct client_opts *opts, int sfd) {
+       int err;
+       int in_fd = 0;
+       clock_t start, end;
+       ssize_t total = 0;
+       ssize_t filesize;
+       char *buf = NULL;
 
+       in_fd = open(opts->ktls_sendfile_mmap, O_RDONLY);
+       if (in_fd < 0) {
+               perror("open");
+               goto out;
+       }
+
+       if (opts->sendfile_size == 0) {
+               filesize = lseek(in_fd, 0L, SEEK_END);
+               if (filesize < 0) {
+                       perror("lseek() to EOF");
+                       err = filesize;
+                       goto out;
+               }
+               err = lseek(in_fd, 0L, SEEK_SET);
+               if (err < 0) {
+                       perror("lseek() to beginning");
+                       goto out;
+               }
+       } else {
+               filesize = opts->sendfile_size;
+       }
+
+       // we explicitly drop caches since we used seek
+       DO_DROP_CACHES(opts);
+
+       start = clock();
+
+       buf = mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, in_fd, /*offset*/ 0);
+       if (buf == MAP_FAILED) {
+               perror("mmap");
+               goto out;
+       }
+
+       for (total = 0; total != filesize; total += err) {
+               err = send(sfd, buf + total, filesize - total, 0);
+               if (err < 0) {
+                       print_error("failed to send via Gnu TLS");
+                       goto out;
+               }
+       }
+
+       end = clock();
+	print_sendfile_mmap_stats(opts, opts->ktls_sendfile_mmap, filesize, total, ((double) (end - start)) / CLOCKS_PER_SEC);
+
+out:
+       if (buf)
+               munmap(buf, filesize);
+       if (in_fd > 0)
+               close(in_fd);
+
+       return err;
+}
 extern int do_plain_splice_emu(const struct client_opts *opts, int sd) {
 	int err;
 	int fd = 0;

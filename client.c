@@ -98,6 +98,7 @@
 #define OPT_TCP                   0x2F
 #define OPT_UDP                   0x30
 #define OPT_SEND_RAW_COUNT       0x32
+#define OPT_KTLS_SENDFILE_MMAP   0x33
 #define OPT_SHORT_OPTS          "td\x03:p:\x05:\x06:\x07:\x08:\x09:\x0A:m:vh\x0E:\x0F:\x10:\x11:\x12\x13\x14:\x15:\x16:\x17\x18\x19jc\x21\x22\x23\x24\x25o:\x26:\x27\x28:\x29:\x2A:\x2B:\x2C:\x2D:\x2E:\x2F\x30"
 
 static int thread_server_port = 0;
@@ -149,6 +150,7 @@ static struct option long_options[] = {
 	/* 0x2F */{"tcp",                   no_argument,        0,  OPT_TCP},
 	/* 0x30 */{"udp",                   no_argument,        0,  OPT_UDP},
 	/* 0x31 */{"send-raw-count",        required_argument,  0,  OPT_SEND_RAW_COUNT},
+	/* 0x33 */{"ktls-sendfile-mmap",   required_argument,  0,  OPT_KTLS_SENDFILE_MMAP},
 	{0, 0, 0, 0}
 };
 
@@ -179,6 +181,7 @@ static void print_help(char *progname) {
 		"\t--sendfile FILE              perform sendfile(2) using AF_KTLS, send file FILE\n"
 		"\t--sendfile-mtu SIZE|-m SIZE  specify sendfile(2) MTU\n"
 		"\t--sendfile-mmap FILE         mmap(2) file FILE before sendfile(2)\n"
+		"\t--ktls-sendfile-mmap FILE    ktls mmap(2) file FILE before sendfile(2)\n"
 		"\t--sendfile-size SIZE         specify size of FILE for sendfile(2); otherwise the whole file is sent\n"
 		"\n"
 		"\t--send-ktls-count COUNT      perform send(2) with zero content using AF_KTLS COUNT times\n"
@@ -225,8 +228,8 @@ static int parse_opts(struct client_opts *opts, int argc, char *argv[]) {
 	bool no_tls_protocol_seen = false;
 
 	// assign default values at first
-	opts->tls = true;
-	opts->tcp = true;
+	opts->tls = false;
+	opts->tcp = false;
 	opts->server_port = 5557;
 	opts->src_port = 0;
 	opts->sendfile = NULL;
@@ -241,6 +244,7 @@ static int parse_opts(struct client_opts *opts, int argc, char *argv[]) {
 	opts->send_gnutls_time = 0;
 	opts->splice_time = 0;
 	opts->sendfile_mmap = NULL;
+	opts->ktls_sendfile_mmap = NULL;
 	opts->sendfile_size = 0;
 	opts->server_host = NULL;
 	opts->server_store = 0;
@@ -543,6 +547,14 @@ static int parse_opts(struct client_opts *opts, int argc, char *argv[]) {
 				}
 				opts->plain_sendfile_mmap = optarg;
 				break;
+                       case OPT_KTLS_SENDFILE_MMAP:
+                               if (opts->ktls_sendfile_mmap) {
+                                       print_error("multiple --ktls-sendfile-mmap supplied");
+                                       return -1;
+                               }
+                               opts->ktls_sendfile_mmap = optarg;
+                               break;
+
 			case OPT_SERVER_NO_ECHO:
 				opts->server_no_echo = true;
 				break;
@@ -611,6 +623,7 @@ static int parse_opts(struct client_opts *opts, int argc, char *argv[]) {
 			!opts->splice_echo_time &&
 			!opts->splice_time &&
 			!opts->sendfile_mmap &&
+			!opts->ktls_sendfile_mmap &&
 			!opts->sendfile_user &&
 			!opts->raw_send_time &&
 			!opts->plain_sendfile &&
@@ -764,6 +777,7 @@ static int parse_opts(struct client_opts *opts, int argc, char *argv[]) {
 	if (opts->send_ktls_count || opts->sendfile || opts->splice_count
 			|| opts->send_ktls_time || opts->send_gnutls_time || opts->splice_time
 			|| opts->splice_echo_count || opts->splice_echo_time || opts->verify
+			|| opts->ktls_sendfile_mmap
 #ifdef TLS_SPLICE_SEND_RAW_TIME
 			|| opts->splice_send_raw_time) {
 #else
@@ -777,7 +791,7 @@ static int parse_opts(struct client_opts *opts, int argc, char *argv[]) {
 }
 
 static void print_opts(const struct client_opts *opts) {
-	print_debug_client(opts, "protocol:			%s", opts->tls ? "TLS" : "DTLS");
+	print_debug_client(opts, "protocol:			%s", opts->tls ? "TLS" : "TCP");
 	if (!opts->server_host) {
 		print_debug_client(opts, "server:			thread server");
 		print_debug_client(opts, "server uses AF_KTLS:	%s", opts->server_ktls ? "true" : "false");
@@ -810,6 +824,8 @@ static void print_opts(const struct client_opts *opts) {
 
 	if (opts->sendfile_mmap)
 		print_debug_client(opts, "mmap(2) send file %s", opts->sendfile_mmap);
+       if (opts->ktls_sendfile_mmap)
+               print_debug_client(opts, "mmap(2) send file %s", opts->ktls_sendfile_mmap);
 	print_debug_client(opts, "output type:		%s", opts->json ? "JSON" : "text");
 	if (opts->raw_send_time)
 		print_debug_client(opts, "raw send time: %d", opts->raw_send_time);
@@ -820,7 +836,7 @@ static void print_opts(const struct client_opts *opts) {
 	if (opts->plain_splice_emu)
 		print_debug_client(opts, "plain send file emulation using splice: %s", opts->plain_splice_emu);
 	if (opts->plain_sendfile_mmap)
-		print_debug_client(opts, "plain send file mmap(2): %s", opts->plain_splice_emu);
+		print_debug_client(opts, "plain send file mmap(2): %s", opts->plain_sendfile_mmap);
 #ifdef TLS_SPLICE_SEND_RAW_TIME
 	if (opts->splice_send_raw_time)
 		print_debug_client(opts, "raw splice send raw time: %u", opts->splice_send_raw_time);
@@ -1021,6 +1037,16 @@ static int do_action(const struct client_opts *opts, gnutls_session_t session,  
 		}
 		DO_DROP_CACHES(opts);
 	}
+       if (opts->ktls_sendfile_mmap) {
+               err = do_ktls_sendfile_mmap(opts, udp_sd);
+               if (err < 0) {
+                       print_error("failed to do KTLS send file with mmap(2)");
+                       goto action_error;
+               }
+               DO_DROP_CACHES(opts);
+       }
+
+
 
 	if (opts->splice_time) {
 		err = do_splice_time(opts, udp_sd);

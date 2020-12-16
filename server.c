@@ -386,7 +386,7 @@ static int dtls_run_server(struct server_opts *opts) {
 	ret = 0;
 
 dtls_run_server_end:
-	if (listen_sd);
+	if (listen_sd)
 		close(listen_sd);
 
 	gnutls_certificate_free_credentials(x509_cred);
@@ -640,6 +640,11 @@ static int tls_run_server(struct server_opts *opts) {
 			continue;
 		}
 		print_info("- Handshake was completed");
+
+		char *desc;
+		desc = gnutls_session_get_desc(session);
+		print_info("-isx Session info: %s\n", desc);
+		gnutls_free(desc);
 
 		/* see the Getting peer's information example */
 		/* print_info(session); */
